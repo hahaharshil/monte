@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np 
 
 
-x,y = np.loadtxt("output.txt", unpack=True);
-plt.scatter(x,y);
-
-
+r = np.loadtxt("returns.txt");
+plt.hist(r, bins=50);
 plt.show();

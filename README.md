@@ -1,40 +1,64 @@
-# Monte Carlo stock risk model
+# Monte Carlo Risk Model
 
-**Question:** if I invest in this stock for a year, how likely am I to lose money, and how much could I lose?
+If you invest in a stock for one year, how likely are you to lose money, and how much could you lose?
 
-We answer it with **Value at Risk (VaR)**: simulate thousands of possible years from the stock's
-historical behaviour, then read off the worst 5%.
+This project answers that for any stock on Yahoo Finance. It downloads two years of daily prices, simulates 10,000 possible years with the Monte Carlo method, and reports the **95% Value at Risk (VaR)** and the **chance of a loss**. It then checks the model's assumptions with hypothesis tests and compares the stock with the market using correlation and regression.
 
-## Run it
+## Run
 
 ```sh
-python3 -m venv .venv && .venv/bin/pip install yfinance numpy matplotlib scipy   # once
-make        # asks for a ticker, downloads, simulates, plots, runs the tests
+python3 -m venv .venv
+.venv/bin/pip install yfinance numpy matplotlib scipy
+make
 ```
+
+`make` asks for a ticker (for example `AAPL`), then downloads the data, runs the simulation, draws the plots and runs the tests.
 
 ## Files
 
-| file | step | what it does |
-|---|---|---|
-| `fetch.py` | 1 | asks for a ticker, downloads 2 years of its closing prices and SPY's, keeps the common days, writes `prices.txt` and `market.txt` |
-| `calc.cpp` | 2 | log returns → mean `mu` and volatility `sigma` → Monte Carlo → VaR and chance of loss (settings are at the top of the file) |
-| `plot.py`  | 3 | draws the returns, 100 simulated years, and the final values with the VaR line |
-| `stats.py` | 4 | t-test, F-test, two sample t-test, chi-square test, least squares trend, correlation and regression (beta) vs SPY, and their plots |
-| `Makefile` |   | builds and runs everything |
-| `report/`  |   | LaTeX project report (`report.tex`), self-contained for Overleaf |
-
-Generated files: `returns.txt`, `finals.txt`, `paths.txt`, `results.txt`, `risk.png`, `stats.png`.
+| File | What it does |
+|---|---|
+| `fetch.py` | Downloads two years of closing prices for the ticker and for SPY (the market) |
+| `calc.cpp` | Log returns, mean and volatility, 10,000 simulated years, VaR and chance of a loss |
+| `plot.py` | Plots the daily returns, 100 simulated years and the final values with the VaR line |
+| `stats.py` | t-test, F-test, two sample t-test, chi-square test, least squares trend, correlation and regression |
+| `Makefile` | Runs everything in order |
+| `report/` | Project report in LaTeX (`report.tex`) and the compiled `report.pdf` |
 
 ## Method
 
-1. Daily log return `r = ln(p_t / p_{t-1})`. Log returns add up over time.
-2. `mu` = mean of r, `sigma` = sample standard deviation of r.
-3. Each simulated year sums 252 draws from `Normal(mu, sigma)`, so the final value is `investment * e^sum`.
-4. Sort the 10,000 final values. The **95% VaR** is `investment - 5th percentile`.
+1. Daily log return: `r = ln(P_today / P_yesterday)`.
+2. Mean `mu` and standard deviation `sigma` of the returns.
+3. Each simulated year is 252 days. Every day the money is multiplied by `e^r`, where `r` is drawn from a normal distribution with `mu` and `sigma`.
+4. The 10,000 end values are sorted. The 95% VaR is the starting money minus the 5th percentile.
 
-## Known limitations
+## Tests
 
-- Real returns have **fat tails** (see the left plot: the -9% and +14% days), so a normal model underestimates crashes.
-- `mu` and `sigma` come from the past 2 years and aren't guaranteed to hold in the future.
-- `stats.py` checks these: for AAPL the mean return is not significant (t-test), the variance changed between the two years (F-test) and the returns are not normal (chi-square).
-- Single stock only. Next steps: a correlated portfolio (Cholesky) and a backtest.
+All at the 5% significance level.
+
+| Test | Question |
+|---|---|
+| t-test | Is the average daily return different from zero? |
+| F-test | Was the volatility the same in the first and second year? |
+| Two sample t-test | Was the average return the same in both years? (pooled or Welch, chosen by the F-test) |
+| Chi-square | Are the daily returns normally distributed? |
+| Least squares | Exponential trend curve fitted to the price |
+| Correlation | Does the stock move with the market? |
+| Regression | Beta of the stock against the market, and R² |
+
+## Results for AAPL ($10,000, one year)
+
+| | |
+|---|---|
+| 95% VaR | $2,353 |
+| Chance of a loss | 23.1% |
+| Mean return significant? | No (t = 1.01) |
+| Same volatility both years? | No (F = 1.68) |
+| Returns normal? | No (χ² = 65.9) |
+| Beta vs SPY | 1.02 (R² = 0.36) |
+
+The tests show that the simple normal model leaves out part of the risk, so the VaR above should be read as a lower estimate.
+
+## Report
+
+`report/report.tex` builds with pdfLaTeX. It also works on Overleaf: upload the `report` folder, plus the college logo as `report/image.png`.

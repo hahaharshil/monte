@@ -2,55 +2,99 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <random>
+#include <algorithm>
 
 using namespace std;
 
-int main(){
+int main() {
+    double money = 10000;  // how much we invest
+    int sims = 10000;      // how many years we pretend to live
+    int days = 252;        // trading days in one year
+
+    // read the prices
     ifstream file("prices.txt");
-    if(!file){
-        cout << "wtf dude no prices.txt found" << endl;
-        return 1;
+    vector<double> prices;
+    double price;
+    while (file >> price) {
+        prices.push_back(price);
     }
 
-    vector<double> p;
-    double x;
-    while(file >> x){
-        p.push_back(x);
+    // daily returns: how much the price changed each day
+    vector<double> returns;
+    ofstream returnsFile("returns.txt");
+    for (int i = 1; i < prices.size(); i++) {
+        double r = log(prices[i] / prices[i - 1]);
+        returns.push_back(r);
+        returnsFile << r << endl;
     }
 
-    ofstream returns("returns.txt");
-    
-    int n = p.size();
-    vector<double> r(n);
-    for(int i = 1; i < p.size(); i++){
-        r[i] = log(p[i] /p[i-1]);
-        returns << r[i] << endl;
-    }
-    cout << endl;
-
-    
-
-
-    double mu;
+    // mu: the average return
     double sum = 0;
-    for(int i = 0; i < n; i++){
-        sum += r[i];
+    for (int i = 0; i < returns.size(); i++) {
+        sum += returns[i];
     }
-    mu = sum / (n - 1); 
+    double mu = sum / returns.size();
 
-    double summation = 0;
-    for(int i = 0; i < n; i++){
-        double a = (r[i] - mu) * (r[i] - mu);
-        
-        summation += a;
+    // sigma: how much the returns jump around
+    double total = 0;
+    for (int i = 0; i < returns.size(); i++) {
+        total += (returns[i] - mu) * (returns[i] - mu);
     }
-    double sigma = sqrt(summation / (n - 2));
+    double sigma = sqrt(total / (returns.size() - 1));
 
-    cout << n << endl;
-    cout << mu << endl;
-    cout << sum << endl;
-    cout << sigma << endl;
+    // random number maker that gives numbers shaped like a bell curve
+    mt19937 rng(42);
+    normal_distribution<double> randomReturn(mu, sigma);
+
+    // monte carlo: live the year many times
+    vector<double> finals;
+    ofstream pathsFile("paths.txt");
+    for (int s = 0; s < sims; s++) {
+        double value = money;
+        for (int d = 0; d < days; d++) {
+            value = value * exp(randomReturn(rng));
+            if (s < 100) {
+                pathsFile << value << " ";  // save 100 years to draw
+            }
+        }
+        if (s < 100) {
+            pathsFile << endl;
+        }
+        finals.push_back(value);
+    }
+
+    ofstream finalsFile("finals.txt");
+    for (int i = 0; i < finals.size(); i++) {
+        finalsFile << finals[i] << endl;
+    }
+
+    // sort from worst to best
+    sort(finals.begin(), finals.end());
+
+    // the 5% worst year
+    double worst5 = finals[sims * 5 / 100];
+    double var = money - worst5;
+
+    // how many years lost money
+    int losses = 0;
+    for (int i = 0; i < sims; i++) {
+        if (finals[i] < money) {
+            losses++;
+        }
+    }
+    double chanceOfLoss = losses * 100.0 / sims;
+
+    cout << "mu    = " << mu << endl;
+    cout << "sigma = " << sigma << endl;
+    cout << "middle result  = $" << finals[sims / 2] << endl;
+    cout << "chance of loss = " << chanceOfLoss << "%" << endl;
+    cout << "VaR 95%        = $" << var << endl;
+
+    ofstream resultsFile("results.txt");
+    resultsFile << money << endl;
+    resultsFile << var << endl;
+    resultsFile << chanceOfLoss << endl;
+
+    return 0;
 }
-
-
-

@@ -1,17 +1,13 @@
 import yfinance as yf
-import pandas as pd
 
-stock = yf.Ticker("AAPL")
 
-data = stock.history(period="2y");
+tic = input("Enter Ticker: ")
 
-pd.set_option("display.width", 200)
-pd.set_option("display.max_rows", None)
-pd.set_option("display.max_columns", None)
+stock = yf.Ticker(tic)
+data = stock.history(period="2y")
 
 data["Close"].to_csv("prices.txt", index=False, header=False)
 
+print(data)
 
-print(data);
-
-
+open("ticker.txt", "w").write(tic)

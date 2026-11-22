@@ -1,0 +1,28 @@
+mu    = 0.000825627
+sigma = 0.0182032
+middle result  = $12283.4
+chance of loss = 23.11%
+VaR 95%        = $2352.98
+AAPL: 500 daily returns
+
+1. t-test   H0: mean return = 0
+   t = 1.014   table = 1.965   accept H0
+
+2. F-test   H0: variance in year 1 = variance in year 2
+   F = 1.677   table = 1.283   reject H0
+
+3. t-test   H0: mean in year 1 = mean in year 2
+   t = -0.145   df = 468   table = 1.965   accept H0
+
+4. chi-square test   H0: returns are normal
+   chi2 = 65.92   df = 7   table = 14.07   reject H0
+
+5. least squares trend   price = e^(a + b*day)
+   a = 5.3079   b = 0.000981   growth per year = 28.1%
+
+6. correlation   H0: no correlation with the market
+   r = 0.602   t = 16.82   table = 1.965   reject H0
+
+7. regression   stock = alpha + beta * market
+   alpha = 0.00047   beta = 1.016   R^2 = 0.362
+   36% of the daily moves are explained by the market
